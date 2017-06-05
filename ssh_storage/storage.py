@@ -102,6 +102,7 @@ class SSHStorage(Storage):
                 )
         else:
             config['password'] = location['PASSWORD']
+            config['rsa_key'] = None
 
         if location.get('PORT', '') == '':
             config['port'] = 22
