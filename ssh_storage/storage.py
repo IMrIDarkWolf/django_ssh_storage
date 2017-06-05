@@ -95,13 +95,13 @@ class SSHStorage(Storage):
 
         if location.get('PASSWORD', '') == '':
             config['password'] = None
+            config['rsa_key'] = location['RSA_KEY']
+            if not os.path.exists(config['rsa_key']):
+                raise ImproperlyConfigured(
+                    "The file '{}' has not been found.".format(config['rsa_key'])
+                )
         else:
             config['password'] = location['PASSWORD']
-
-        if location.get('RSA_KEY', '') == '':
-            config['rsa_key'] = None
-        else:
-            config['rsa_key'] = location['RSA_KEY']
 
         if location.get('PORT', '') == '':
             config['port'] = 22
