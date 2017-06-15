@@ -29,12 +29,12 @@ import posixpath
 import stat
 
 from datetime import datetime
-from io import StringIO
 
 from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.six import BytesIO
 
 from .sshclientmanager import SSHClientManager
 
@@ -317,7 +317,7 @@ class SSHStorageFile(File):
         self._storage = storage
         self._mode = mode
         self._is_dirty = False
-        self.file = StringIO()
+        self.file = BytesIO()
         self._is_read = False
         self._size = None
 
@@ -340,7 +340,7 @@ class SSHStorageFile(File):
         logger.debug("I am the write")
         if 'w' not in self._mode:
             raise AttributeError("File was opened for read-only access.")
-        self.file = StringIO(content)
+        self.file = BytesIO(content)
         self._is_dirty = True
         self._is_read = True
 
