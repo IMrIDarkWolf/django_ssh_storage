@@ -318,7 +318,6 @@ class SSHStorageFile(File):
         self._mode = mode
         self._is_dirty = False
         self.file = BytesIO()
-        self._is_read = False
         self._size = None
 
     @property
@@ -330,9 +329,7 @@ class SSHStorageFile(File):
 
     def read(self, num_bytes=None):
         logger.debug("I am the read")
-        if not self._is_read:
-            self.file = self._storage._read(self._name)
-            self._is_read = True
+        self.file = self._storage._read(self._name)
 
         return self.file.read(num_bytes)
 
@@ -342,7 +339,6 @@ class SSHStorageFile(File):
             raise AttributeError("File was opened for read-only access.")
         self.file = BytesIO(content)
         self._is_dirty = True
-        self._is_read = True
 
     def close(self):
         logger.debug("I am the close")
