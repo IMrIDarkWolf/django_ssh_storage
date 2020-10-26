@@ -27,6 +27,7 @@ import logging
 import os
 import posixpath
 import stat
+import copy
 
 from datetime import datetime
 
@@ -324,7 +325,7 @@ class MultipleSSHStorages(object):
 
     def save(self, name, content):
         for host in self._storages.values():
-            _content = content
+            _content = copy.copy(content)
             host.save(name, _content)
 
 
