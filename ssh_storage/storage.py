@@ -323,7 +323,7 @@ class MultipleSSHStorages(object):
             self._storages[host] = SSHStorage(location=_loc, *args, **kwargs)
 
     def save(self, name, content):
-        for host in self._storages:
+        for host in self._storages.values():
             host.save(name, content)
 
 
