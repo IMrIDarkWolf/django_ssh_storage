@@ -324,7 +324,8 @@ class MultipleSSHStorages(object):
 
     def save(self, name, content):
         for host in self._storages.values():
-            host.save(name, content)
+            _content = content
+            host.save(name, _content)
 
 
 class SSHStorageFile(File):
