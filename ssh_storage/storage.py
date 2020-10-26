@@ -32,7 +32,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.core.files.base import File
-from django.core.files.storage import Storage
+from django.core.files.storage import Storage, default_storage
 from django.core.exceptions import ImproperlyConfigured
 from six import BytesIO
 
@@ -309,6 +309,22 @@ class SSHStorage(Storage):
         ).replace('\\', '/')
         logger.debug("URL: {}".format(the_url))
         return the_url
+
+
+class MultipleSSHStorages(object):
+
+    def __init__(self, location=settings.SSH_STORAGE_LOCATION, *args, **kwargs):
+        logger.debug("__init__")
+        self._storages = {}
+
+        for host in location['HOSTNAMES']:
+            _loc = location
+            _loc['hostname'] = host
+            self._storages[host] = SSHStorage(location=_loc, *args, **kwargs)
+
+    def _save(self, name, content):
+        for host in self._storages:
+            host.save(name, content)
 
 
 class SSHStorageFile(File):
