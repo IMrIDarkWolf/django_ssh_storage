@@ -34,7 +34,7 @@ from django.conf import settings
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.core.exceptions import ImproperlyConfigured
-from django.utils.six import BytesIO
+from six import BytesIO
 
 from .sshclientmanager import SSHClientManager
 
