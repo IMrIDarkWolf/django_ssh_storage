@@ -329,7 +329,7 @@ class MultipleSSHStorages(SSHStorage):
             if manager is None:
                 self._start_connection()
                 break
-        return self._ssh_client_manager
+        return self._ssh_client_managers
 
     def _decode_location(self, location):
         if location.get('HOSTNAMES', '') == '':
