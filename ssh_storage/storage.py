@@ -348,19 +348,20 @@ class MultipleSSHStorages(SSHStorage):
         # Check if connection is still alive and if not, drop it.
         managers = self._ssh_client_managers
         for host, manager in managers.items():
+            _manager = manager
             if manager is not None:
                 try:
-                    manager.check()
+                    _manager.check()
                 except:
                     try:
-                        manager.close_connection()
+                        _manager.close_connection()
                     except:
                         pass
-                    manager = None
+                    _manager = None
 
             # Real reconnect
-            if manager is None:
-                manager = SSHClientManager(
+            if _manager is None:
+                connection = SSHClientManager(
                     hostname=host,
                     username=self._config['username'],
                     basepath=self._config['basepath'],
@@ -368,7 +369,7 @@ class MultipleSSHStorages(SSHStorage):
                     rsa_key=self._config['rsa_key'],
                     port=self._config['port']
                 )
-                if not manager.setup():
+                if not connection.setup():
                     logger.error("Connection or login error using data {}".format(
                             repr(self._config)
                         )
@@ -378,7 +379,7 @@ class MultipleSSHStorages(SSHStorage):
                             repr(self._config)
                         )
                     )
-                self._ssh_client_managers[host] = manager
+                self._ssh_client_managers[host] = connection
 
     def disconnect(self):
         logger.debug("disconnect")
