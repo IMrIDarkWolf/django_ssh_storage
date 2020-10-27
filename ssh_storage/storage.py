@@ -277,19 +277,19 @@ class SSHStorage(Storage):
         remote_path = self._remote_path(name)
         return self.ssh_client_manager.sftp.stat(remote_path).st_size
 
-    def modified_time(self, name):
+    def get_modified_time(self, name):
         logger.debug("modified_time")
         remote_path = self._remote_path(name)
         utime = self.ssh_client_manager.sftp.stat(remote_path).st_mtime
         return datetime.fromtimestamp(utime)
 
-    def accessed_time(self, name):
+    def get_accessed_time(self, name):
         logger.debug("accessed_time")
         remote_path = self._remote_path(name)
         utime = self.ssh_client_manager.sftp.stat(remote_path).st_atime
         return datetime.fromtimestamp(utime)
 
-    def created_time(self, name):
+    def get_created_time(self, name):
         logger.debug("created_time")
         pass
 
@@ -312,21 +312,113 @@ class SSHStorage(Storage):
         return the_url
 
 
-class MultipleSSHStorages(object):
+class MultipleSSHStorages(SSHStorage):
 
     def __init__(self, location=settings.SSH_STORAGE_LOCATION, *args, **kwargs):
-        logger.debug("__init__")
-        self._storages = {}
+        super(MultipleSSHStorages, self).__init__(location, *args, **kwargs)
+        self._ssh_client_managers = dict()
 
-        for host in location['HOSTNAMES']:
-            _loc = location
-            _loc['hostname'] = host
-            self._storages[host] = SSHStorage(location=_loc, *args, **kwargs)
+        for host in self._config['hostnames']:
+            self._ssh_client_managers[host] = None
 
-    def save(self, name, content):
-        for host in self._storages.values():
-            _content = copy.copy(content)
-            host.save(name, _content)
+    def _decode_location(self, location):
+        if location.get('HOSTNAMES', '') == '':
+            logger.fatal('A hostname must be provided.')
+            raise ImproperlyConfigured(
+                'A hostname must be provided.'
+            )
+        location['HOSTNAME'] = 'localhost'
+        config = super(MultipleSSHStorages, self)._decode_location(location)
+
+        config['hostnames'] = location['HOSTNAMES']
+        return config
+
+    def _start_connection(self):
+        logger.debug("_start_connection")
+        # Check if connection is still alive and if not, drop it.
+        managers = self._ssh_client_managers
+        for host, manager in managers.items():
+            if manager is not None:
+                try:
+                    manager.check()
+                except:
+                    try:
+                        manager.close_connection()
+                    except:
+                        pass
+                    manager = None
+
+            # Real reconnect
+            if manager is None:
+                manager = SSHClientManager(
+                    hostname=host,
+                    username=self._config['username'],
+                    basepath=self._config['basepath'],
+                    password=self._config['password'],
+                    rsa_key=self._config['rsa_key'],
+                    port=self._config['port']
+                )
+                if not manager.setup():
+                    logger.error("Connection or login error using data {}".format(
+                            repr(self._config)
+                        )
+                    )
+                    raise SSHStorageException(
+                        "Connection or login error using data {}".format(
+                            repr(self._config)
+                        )
+                    )
+                self._ssh_client_managers[host] = manager
+
+    def _put_file(self, name, content):
+        logger.debug("_put_file")
+        # Connection must be open!
+        path, destname = os.path.split(name)
+        logger.debug("PATH: {}, DESTNAME: {}".format(
+            path,
+            destname
+        ))
+
+        for manager in self._ssh_client_managers:
+            result = manager.upload(
+                sourcefile=content,
+                destname=destname,
+                path=path if path != '' else None
+            )
+
+            if not result:
+                logger.error("Error writing file {}".format(name))
+                # raise SSHStorageException("Error writing file {}".format(name))
+
+    def exists(self, name):
+        logger.debug("exists")
+        # Try to retrieve file info.  Return true on success, false on failure.
+        remote_path = self._remote_path(name)
+
+        try:
+            for manager in self._ssh_client_managers:
+                manager.sftp.stat(remote_path)
+            return True
+        except IOError:
+            return False
+
+    def get_modified_time(self, name):
+        logger.debug("modified_time")
+        remote_path = self._remote_path(name)
+        # utime = self.ssh_client_manager.sftp.stat(remote_path).st_mtime
+        # return datetime.fromtimestamp(utime)
+        return datetime.now()
+
+    def get_accessed_time(self, name):
+        logger.debug("accessed_time")
+        remote_path = self._remote_path(name)
+        # utime = self.ssh_client_manager.sftp.stat(remote_path).st_atime
+        # return datetime.fromtimestamp(utime)
+        return datetime.now()
+
+    def get_created_time(self, name):
+        logger.debug("created_time")
+        pass
 
 
 class SSHStorageFile(File):
