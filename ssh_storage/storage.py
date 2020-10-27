@@ -321,6 +321,16 @@ class MultipleSSHStorages(SSHStorage):
         for host in self._config['hostnames']:
             self._ssh_client_managers[host] = None
 
+    @property
+    def ssh_client_managers(self):
+        logger.debug("ssh_client_manager")
+        # Lazy initializer
+        for manager in self._ssh_client_managers.values():
+            if manager is None:
+                self._start_connection()
+                break
+        return self._ssh_client_manager
+
     def _decode_location(self, location):
         if location.get('HOSTNAMES', '') == '':
             logger.fatal('A hostname must be provided.')
@@ -370,6 +380,13 @@ class MultipleSSHStorages(SSHStorage):
                     )
                 self._ssh_client_managers[host] = manager
 
+    def disconnect(self):
+        logger.debug("disconnect")
+        for manager in self._ssh_client_managers.values():
+            if manager:
+                manager.close_connection()
+                manager = None
+
     def _put_file(self, name, content):
         logger.debug("_put_file")
         # Connection must be open!
@@ -379,7 +396,7 @@ class MultipleSSHStorages(SSHStorage):
             destname
         ))
 
-        for manager in self._ssh_client_managers.values():
+        for manager in self.ssh_client_managers.values():
             result = manager.upload(
                 sourcefile=content,
                 destname=destname,
@@ -396,7 +413,7 @@ class MultipleSSHStorages(SSHStorage):
         remote_path = self._remote_path(name)
 
         try:
-            for manager in self._ssh_client_managers.values():
+            for manager in self.ssh_client_managers.values():
                 manager.sftp.stat(remote_path)
             return True
         except IOError:
