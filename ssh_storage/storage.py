@@ -379,7 +379,7 @@ class MultipleSSHStorages(SSHStorage):
             destname
         ))
 
-        for manager in self._ssh_client_managers:
+        for manager in self._ssh_client_managers.values():
             result = manager.upload(
                 sourcefile=content,
                 destname=destname,
@@ -396,7 +396,7 @@ class MultipleSSHStorages(SSHStorage):
         remote_path = self._remote_path(name)
 
         try:
-            for manager in self._ssh_client_managers:
+            for manager in self._ssh_client_managers.values():
                 manager.sftp.stat(remote_path)
             return True
         except IOError:
